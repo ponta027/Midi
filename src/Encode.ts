@@ -43,13 +43,29 @@ function encodeControlChange(cc: ControlChange, channel: number): MidiController
 		value: cc.value,
 	};
 }
+function encodeInstBankChange(track: Track): MidiControllerEvent[] {
+	const controlChanges: MidiControllerEvent[] = [];
+	for (let i = 0; i < 127; i++) {
+		if (track.controlChanges.hasOwnProperty(i)) {
+			track.controlChanges[i].forEach((cc: ControlChange) => {
+                if ( cc.ticks == 0 ){
+				    controlChanges.push(encodeControlChange(cc, track.channel));
+                }
+			});
+		}
+	}
+	return controlChanges;
+}
+
 
 function encodeControlChanges(track: Track): MidiControllerEvent[] {
 	const controlChanges: MidiControllerEvent[] = [];
 	for (let i = 0; i < 127; i++) {
 		if (track.controlChanges.hasOwnProperty(i)) {
 			track.controlChanges[i].forEach((cc: ControlChange) => {
-				controlChanges.push(encodeControlChange(cc, track.channel));
+                if( cc.ticks > 0 ){
+				    controlChanges.push(encodeControlChange(cc, track.channel));
+                }
 			});
 		}
 	}
@@ -174,6 +190,8 @@ export function encode(midi: Midi): Uint8Array {
 				return [
 					// add the name
 					encodeTrackName(track.name),
+                    // bank change
+                    ...encodeInstBankChange(track),
 					// the instrument
 					encodeInstrument(track),
 					// add the notes
